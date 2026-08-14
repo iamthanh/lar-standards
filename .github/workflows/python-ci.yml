@@ -110,8 +110,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # lar-standards is PRIVATE, so this clone needs credentials. The automatic
+      # GITHUB_TOKEN is scoped to the calling repository and cannot read it, so
+      # the same PAT the install step uses is required here. Injected via
+      # url.insteadOf rather than embedded in the clone URL, to keep the token
+      # off the command line.
       - name: Fetch canonical standards
+        env:
+          CI_TOKEN: ${{ secrets.ci-token }}
         run: |
+          set -euo pipefail
+          if [ -z "${CI_TOKEN:-}" ]; then
+            echo "::error::ci-token is required: the drift check reads the private iamthanh/lar-standards."
+            exit 1
+          fi
+          git config --global \
+            url."https://x-access-token:${CI_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
           git clone --depth 1 --branch "${{ inputs.standards-ref }}" \
             https://github.com/iamthanh/lar-standards.git /tmp/lar-standards
 

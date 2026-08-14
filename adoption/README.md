@@ -58,12 +58,22 @@ curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v1/scripts/c
 the file does not exist. Step 2 appends the real tail; delete the stub heading
 so the file has only one.
 
-## Prerequisite
+## Prerequisite: LAR_CI_TOKEN must also cover lar-standards
 
 Every repo's CI needs the `LAR_CI_TOKEN` secret — a PAT with read access to the
 private LAR repos. `lunar-alpha-research`, `lar-probability-scoring` and
 `lar-conditions` already have it configured; `lar-ingestion` will need it before
 its first run.
+
+**`lar-standards` is private too, and the drift job clones it.** The existing
+PAT was created for `{lar-conditions, lar-probability-scoring,
+strategy-trader}`, so its scope has to be widened to include `lar-standards` or
+every drift job fails with a 404 on the clone. That is one edit to the PAT, not
+a new secret — the same token is reused.
+
+The drift job fails loudly with a named error when the token is missing, rather
+than skipping. A drift check that silently does not run is the failure mode this
+whole repo exists to prevent.
 
 ## Per-repo notes
 
