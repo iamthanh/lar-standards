@@ -2,13 +2,13 @@
 # Check that a consuming repo's vendored standards match the canonical ones.
 # Same comparison CI performs, runnable locally before you push.
 #
-#   scripts/check-drift.sh [--ref v1] [--target .]
+#   scripts/check-drift.sh [--ref v2] [--target .]
 #
 # Exits non-zero on any drift, and prints the diff.
 
 set -uo pipefail
 
-REF="v1"
+REF="v2"
 TARGET="."
 STANDARDS_REPO="https://github.com/iamthanh/lar-standards.git"
 

@@ -13,8 +13,11 @@ concurrency:
 
 jobs:
   ci:
-    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v1
+    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v2
     with:
+      # Passed explicitly so the pinned tag above and the tag the drift job
+      # compares against cannot silently disagree.
+      standards-ref: 'v2'
       python-versions: '["3.12", "3.13"]'
       install: 'pip install -e ".[dev]"'
     secrets:

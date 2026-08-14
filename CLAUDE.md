@@ -145,5 +145,7 @@ from running the candidate ruleset against all three Python repos and counting
 what survived `ruff format` and `ruff check --fix`. A rule whose blast radius
 has not been measured does not go in the `select` list.
 
-**Backwards compatibility**: moving the `v1` tag is fine for additive changes.
-Anything that turns previously-passing code red needs a new major tag.
+**Backwards compatibility**: moving the current tag is fine for additive
+changes. Anything that turns previously-passing code red needs a new major tag.
+The current tag is `v2`; `v1` is broken (its drift job could not authenticate to
+this private repo) and must not be referenced.

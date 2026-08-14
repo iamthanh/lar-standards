@@ -5,7 +5,7 @@
 #
 #   jobs:
 #     ci:
-#       uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v1
+#       uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v2
 #       with:
 #         python-versions: '["3.12", "3.13"]'
 #         install: 'pip install -e ".[dev]"'
@@ -38,7 +38,7 @@ on:
       standards-ref:
         description: 'Tag of lar-standards the vendored config must match.'
         type: string
-        default: 'v1'
+        default: 'v2'
     secrets:
       ci-token:
         description: 'PAT with read access to the private LAR repos.'

@@ -59,8 +59,8 @@ scripts/
 
 ```bash
 # from the consuming repo's root
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v1/scripts/sync-standards.sh \
-  | bash -s -- --ref v1 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/sync-standards.sh \
+  | bash -s -- --ref v2 --target .
 ```
 
 Then replace the repo's CI with a call to the reusable workflow:
@@ -78,10 +78,13 @@ concurrency:
 
 jobs:
   ci:
-    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v1
+    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v2
     with:
       python-versions: '["3.12", "3.13"]'
       install: 'pip install -e ".[dev]"'
+      # Match this to the tag pinned above. Passing it explicitly keeps the
+      # workflow you run and the standards you are compared against in step.
+      standards-ref: 'v2'
     secrets:
       ci-token: ${{ secrets.LAR_CI_TOKEN }}
 ```
@@ -93,12 +96,18 @@ Two configs for one tool is the failure mode this repo exists to end.
 ## Changing a standard
 
 1. Edit here. Never edit a vendored copy — the drift job will fail it.
-2. Cut a tag (`v1`, `v2`, ...). Consuming repos pin to the tag.
+2. Cut a tag (`v2`, `v3`, ...). Consuming repos pin to the tag.
 3. Run `scripts/sync-standards.sh --ref <tag>` in each consumer and commit.
 
-Moving the `v1` tag is allowed for additive, non-breaking changes. Anything that
-turns previously-passing code red gets a new major tag so repos can adopt on
-their own schedule.
+Moving the current tag is allowed for additive, non-breaking changes. Anything
+that turns previously-passing code red gets a new major tag so repos can adopt
+on their own schedule.
+
+**The current tag is `v2`. `v1` is broken and must not be used** — its drift job
+cloned this private repo without credentials, so it 404s on any runner. That is
+also the worked example for the rule above: a fix that turns red into green in
+one direction can turn green into red in the other, so it got a new tag rather
+than moving the old one.
 
 ## Enforcement posture
 

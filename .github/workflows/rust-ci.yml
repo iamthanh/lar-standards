@@ -4,7 +4,7 @@
 #
 #   jobs:
 #     ci:
-#       uses: iamthanh/lar-standards/.github/workflows/rust-ci.yml@v1
+#       uses: iamthanh/lar-standards/.github/workflows/rust-ci.yml@v2
 #
 # Unlike the Python gate, this one is whole-repo: lar-probability-engine is
 # already green under it, so there is no backlog to phase in.
@@ -19,7 +19,7 @@ on:
         default: 'cargo test --workspace --all-features'
       standards-ref:
         type: string
-        default: 'v1'
+        default: 'v2'
     secrets:
       ci-token:
         description: 'PAT with read access to the private LAR repos. Required by the drift job.'

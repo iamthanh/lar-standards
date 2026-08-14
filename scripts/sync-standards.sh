@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pull canonical LAR standards into a consuming repo.
 #
-#   scripts/sync-standards.sh [--ref v1] [--target .]
+#   scripts/sync-standards.sh [--ref v2] [--target .]
 #
 # Copies config/ruff.toml, config/mypy.ini and config/.editorconfig into the
 # target repo root, and refreshes the shared block inside its CLAUDE.md
@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-REF="v1"
+REF="v2"
 TARGET="."
 STANDARDS_REPO="https://github.com/iamthanh/lar-standards.git"
 

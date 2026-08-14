@@ -9,20 +9,14 @@ branch `claude/ai-code-structure-guidelines-ela4u1`. Their CI is currently
 **inlined** rather than calling the reusable workflow, because this repo did not
 exist yet — see "Switching the two adopted repos over" below.
 
-## Step 0: cut the `v1` tag
+## The current tag is `v2`
 
-Everything below pins `@v1`, and nothing resolves until that tag exists. `main`
-is pushed; the tag is not, because this session's egress proxy denies tag
-pushes (HTTP 403 — an organization policy, not a transient failure). Cut it
-locally:
+Everything below pins `@v2`. **Do not use `v1`** — it points at a commit whose
+drift job cloned the private `lar-standards` without credentials, so every
+adopting repo's CI would 404 before comparing a single file. `v2` is the first
+usable tag.
 
-```bash
-git clone https://github.com/iamthanh/lar-standards && cd lar-standards
-git tag -a v1 -m "v1: initial LAR standards"
-git push origin v1
-```
-
-Consuming repos pin to the tag rather than `main` for the same reason the LAR
+Consuming repos pin to a tag rather than `main` for the same reason the LAR
 repos already pin each other by tag or SHA: a moving reference turns an
 unrelated upstream edit into a surprise CI change.
 
@@ -38,20 +32,20 @@ the big repos at them.
 cd /path/to/<repo>
 
 # 1. Vendor the canonical config and seed CLAUDE.md with the shared block.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v1/scripts/sync-standards.sh \
-  | bash -s -- --ref v1 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/sync-standards.sh \
+  | bash -s -- --ref v2 --target .
 
 # 2. Append the repo-specific tail.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v1/adoption/<repo>/CLAUDE.tail.md \
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/adoption/<repo>/CLAUDE.tail.md \
   >> CLAUDE.md
 
 # 3. Replace CI.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v1/adoption/<repo>/ci.yml \
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/adoption/<repo>/ci.yml \
   > .github/workflows/ci.yml
 
 # 4. Confirm nothing drifted.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v1/scripts/check-drift.sh \
-  | bash -s -- --ref v1 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/check-drift.sh \
+  | bash -s -- --ref v2 --target .
 ```
 
 `sync-standards.sh` seeds `CLAUDE.md` with a "Repo-specific guidance" stub when
@@ -93,7 +87,7 @@ and a `src/` layout from the start.
 
 ## Switching the two adopted repos over
 
-Once `v1` is tagged here, replace the inlined `.github/workflows/style.yml` in
+Now that `v2` is tagged, replace the inlined `.github/workflows/style.yml` in
 each adopted repo with a call to the reusable workflow. The exact replacement
 is written at the top of each of those files. For `lunar-alpha-research` the
 `test-command` is `''` — its tests are gated by its existing `ci.yml`, which
