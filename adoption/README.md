@@ -9,6 +9,23 @@ branch `claude/ai-code-structure-guidelines-ela4u1`. Their CI is currently
 **inlined** rather than calling the reusable workflow, because this repo did not
 exist yet — see "Switching the two adopted repos over" below.
 
+## Step 0: cut the `v1` tag
+
+Everything below pins `@v1`, and nothing resolves until that tag exists. `main`
+is pushed; the tag is not, because this session's egress proxy denies tag
+pushes (HTTP 403 — an organization policy, not a transient failure). Cut it
+locally:
+
+```bash
+git clone https://github.com/iamthanh/lar-standards && cd lar-standards
+git tag -a v1 -m "v1: initial LAR standards"
+git push origin v1
+```
+
+Consuming repos pin to the tag rather than `main` for the same reason the LAR
+repos already pin each other by tag or SHA: a moving reference turns an
+unrelated upstream edit into a surprise CI change.
+
 ## Order
 
 Do `lar-ingestion` first. It is nearly empty, so it is the cheapest way to
