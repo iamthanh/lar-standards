@@ -5,16 +5,15 @@ holds the repo-specific tail for its `CLAUDE.md` and the CI file that replaces
 its hand-rolled workflow.
 
 `lunar-alpha-research` and `lar-probability-scoring` have already adopted, on
-branch `claude/ai-code-structure-guidelines-ela4u1`. Their CI is currently
-**inlined** rather than calling the reusable workflow, because this repo did not
-exist yet — see "Switching the two adopted repos over" below.
+branch `claude/ai-code-structure-guidelines-ela4u1`. Both now call the reusable
+workflow, and their `standards drift` and `style` jobs pass — so the pattern the
+three repos below are about to follow is proven, not theoretical.
 
 ## The current tag is `v2`
 
-Everything below pins `@v2`. **Do not use `v1`** — it points at a commit whose
-drift job cloned the private `lar-standards` without credentials, so every
-adopting repo's CI would 404 before comparing a single file. `v2` is the first
-usable tag.
+Everything below pins `@v2`. **Do not use `v1`** — its drift job hard-required
+a credential, and predates the fixes that followed. `v2` is the first usable
+tag.
 
 Consuming repos pin to a tag rather than `main` for the same reason the LAR
 repos already pin each other by tag or SHA: a moving reference turns an
@@ -52,38 +51,31 @@ curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/c
 the file does not exist. Step 2 appends the real tail; delete the stub heading
 so the file has only one.
 
-## Prerequisite: this repo must share its workflows
+## This repo is public, deliberately
 
-**A private repo does not share its workflows with other repositories by
-default.** Until that is enabled, every caller's run fails instantly with zero
-jobs — the workflow never resolves, so there is no failing step to read and the
-run log is empty. It looks like a broken caller; it is not.
+It holds lint config, markdown standards, CI definitions and adoption notes —
+no secrets, no strategy, no market data. Being public removes two failure modes
+that cost real time to diagnose:
 
-Enable it once, here:
+- **Reusable workflows resolve.** A private repo does not share its workflows
+  with other repositories by default, and when it does not, the caller's run
+  fails instantly with zero jobs — no failing step, empty log. It reads as a
+  broken caller rather than a missing permission.
+- **The drift job needs no credentials**, so adopting a repo no longer depends
+  on a PAT's scope being widened in a second place.
 
-**Settings → Actions → General → "Access"** →
-**"Accessible from repositories owned by the user 'iamthanh'"** → Save
+Keep it public. If something genuinely secret ever needs to live here, it
+belongs in the consuming repo's private tail instead.
 
-This is separate from `LAR_CI_TOKEN` below and neither substitutes for the
-other: this setting governs whether Actions may *load the workflow*, the token
-governs whether a running job may *clone this repo* for the drift comparison.
+## Prerequisite: LAR_CI_TOKEN
 
-## Prerequisite: LAR_CI_TOKEN must also cover lar-standards
+Needed only for the **test** job, which installs the private `lar-*` packages
+pinned over `git+ssh`. `lunar-alpha-research`, `lar-probability-scoring` and
+`lar-conditions` already have it; `lar-ingestion` will need it before its first
+run installs anything private.
 
-Every repo's CI needs the `LAR_CI_TOKEN` secret — a PAT with read access to the
-private LAR repos. `lunar-alpha-research`, `lar-probability-scoring` and
-`lar-conditions` already have it configured; `lar-ingestion` will need it before
-its first run.
-
-**`lar-standards` is private too, and the drift job clones it.** The existing
-PAT was created for `{lar-conditions, lar-probability-scoring,
-strategy-trader}`, so its scope has to be widened to include `lar-standards` or
-every drift job fails with a 404 on the clone. That is one edit to the PAT, not
-a new secret — the same token is reused.
-
-The drift job fails loudly with a named error when the token is missing, rather
-than skipping. A drift check that silently does not run is the failure mode this
-whole repo exists to prevent.
+The drift job does **not** need it — `lar-standards` is public. The token is
+used there only when present, for the higher rate limit on busy runners.
 
 ## Per-repo notes
 
@@ -101,10 +93,12 @@ lowest urgency.
 the first commit rather than the changed-files scoping the older repos need,
 and a `src/` layout from the start.
 
-## Switching the two adopted repos over
+## Verified end to end
 
-Now that `v2` is tagged, replace the inlined `.github/workflows/style.yml` in
-each adopted repo with a call to the reusable workflow. The exact replacement
-is written at the top of each of those files. For `lunar-alpha-research` the
-`test-command` is `''` — its tests are gated by its existing `ci.yml`, which
-runs the seam tests rather than the full suite.
+On `lar-probability-scoring` and `lunar-alpha-research`, `ci / standards drift`
+and `ci / style (changed files)` both pass against `lar-standards@v2`.
+
+The drift comparison was also tested against deliberate tampering — a changed
+`line-length`, an edited line inside the `CLAUDE.md` shared block, and a deleted
+`mypy.ini` — and fails on each. It is a guard that actually guards, not one that
+passes because it never looked.

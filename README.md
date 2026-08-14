@@ -103,11 +103,10 @@ Moving the current tag is allowed for additive, non-breaking changes. Anything
 that turns previously-passing code red gets a new major tag so repos can adopt
 on their own schedule.
 
-**The current tag is `v2`. `v1` is broken and must not be used** — its drift job
-cloned this private repo without credentials, so it 404s on any runner. That is
-also the worked example for the rule above: a fix that turns red into green in
-one direction can turn green into red in the other, so it got a new tag rather
-than moving the old one.
+**The current tag is `v2`. `v1` must not be used** — its drift job required
+credentials this repo no longer needs, and predates the fixes below. It is also
+the worked example for the rule above: it got a new tag rather than having the
+old one moved.
 
 ## Enforcement posture
 

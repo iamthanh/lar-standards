@@ -22,7 +22,7 @@ on:
         default: 'v2'
     secrets:
       ci-token:
-        description: 'PAT with read access to the private LAR repos. Required by the drift job.'
+        description: 'PAT with read access to the private LAR repos. Optional: lar-standards is public.'
         required: false
 
 env:
@@ -58,23 +58,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # lar-standards is PRIVATE, so this clone needs credentials. The automatic
-      # GITHUB_TOKEN is scoped to the calling repository and cannot read it, so
-      # the same PAT the install step uses is required here. Injected via
-      # url.insteadOf rather than embedded in the clone URL, to keep the token
-      # off the command line.
+      # lar-standards is public, so this clone needs no credentials. A token is
+      # still used when one is supplied, purely for the higher API rate limit on
+      # busy runners. Injected via url.insteadOf rather than embedded in the
+      # clone URL, to keep it off the command line.
+      #
+      # Do NOT make the token mandatory again: lar-ingestion has no
+      # LAR_CI_TOKEN yet, and a drift check that cannot run is the failure this
+      # repo exists to prevent.
       - name: Fetch canonical standards
         env:
           CI_TOKEN: ${{ secrets.ci-token }}
         run: |
           set -euo pipefail
-          if [ -z "${CI_TOKEN:-}" ]; then
-            echo "::error::ci-token is required: the drift check reads the private iamthanh/lar-standards."
-            exit 1
+          if [ -n "${CI_TOKEN:-}" ]; then
+            git config --global \
+              url."https://x-access-token:${CI_TOKEN}@github.com/".insteadOf \
+              "https://github.com/"
           fi
-          git config --global \
-            url."https://x-access-token:${CI_TOKEN}@github.com/".insteadOf \
-            "https://github.com/"
           git clone --depth 1 --branch "${{ inputs.standards-ref }}" \
             https://github.com/iamthanh/lar-standards.git /tmp/lar-standards
 
