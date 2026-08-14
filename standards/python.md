@@ -2,7 +2,86 @@
 
 Conventions live in [`agent/CLAUDE.shared.md`](../agent/CLAUDE.shared.md) —
 that file is vendored into every repo so agents read it before writing code.
-This document covers the **toolchain and how it is enforced**.
+This document covers the **package layout, the toolchain, and how both are
+enforced**.
+
+## Package layout
+
+```
+lar-<name>/
+├── pyproject.toml          [tool.setuptools.packages.find] where = ["src"]
+├── README.md               links here; does not restate this
+├── CLAUDE.md               shared block + repo tail
+├── ruff.toml  mypy.ini  .editorconfig      vendored from lar-standards
+├── docs/                   design notes, contracts, migration plan
+├── scripts/                dev/ops scripts, not packaged
+├── src/lar_<name>/
+│   ├── __init__.py
+│   ├── cli.py              Click group, exposed via [project.scripts]
+│   ├── api/                only if the repo serves one
+│   ├── compat/             modules vendored from lunar-alpha-research
+│   └── <domain packages>/
+└── tests/                  mirrors the package; subdirs only when earned
+```
+
+The repo directory is hyphenated (the distribution name) and the package under
+`src/` is underscored (the import name). `lar-probability-scoring` installs as
+`lar_probability_scoring`.
+
+### Why `src/`
+
+Flat layout is not wrong — requests, django, numpy and pandas all use it. `src/`
+is what the Python Packaging Authority recommends, and pip, setuptools, attrs,
+black, flask and pytest follow it. Either is defensible, so the reason to pick
+one is that four layouts across five repos is what this repo exists to stop.
+
+The tie-breaker is specific to how these repos consume each other. With flat
+layout, `import lar_probability_scoring` from the repo root resolves to the
+**source tree**, not the installed package. A module accidentally left out of the
+wheel keeps working locally and fails wherever it is actually installed —
+and `lunar-alpha-research` installs that package **by tag**, so source and
+installed genuinely diverge. Under `src/` the import can only resolve to
+something that was installed, which makes local runs and CI agree.
+
+`lar-conditions` already used `src/`, but as a diagram rather than a decision:
+its migration plan records reasons for ten choices — language, bridge style,
+config format, distribution, DB access, sequencing — and layout is not among
+them. This section is that missing rationale.
+
+### `api/` lives inside the package
+
+At `src/lar_<name>/api/`, holding the app factory, routes and service layer,
+started through a `serve` subcommand on the repo's CLI.
+
+This one is not a preference. At the repo root, `api/` is not importable as
+`lar_<name>.api` and `packages.find` does not ship it. `lar-probability-scoring`
+is the reference shape.
+
+Since the frontend moved to `lar-ui`, **an `api/` package is a cross-repo
+contract**: a route or response-model change is a two-repo change, and the
+OpenAPI export is how the other side sees it.
+
+### `compat/` holds code copied from `lunar-alpha-research`
+
+One name, everywhere, so the copies are visible rather than scattered.
+`lar-conditions` uses `src/lar_conditions/compat/`, and `lar-ingestion`'s plan
+adopts it for the same reason.
+
+Vendored code drifts. `lunar-alpha-research` runs a drift guard that hashes each
+original and fails when one changes without the copy following — two bugs got
+through before it existed, a SQL cast copied onto a column of a different type
+and a calculation duplicated in two places that then diverged for 85.8% of rows.
+Quarantining copies under one directory is what makes that check possible.
+
+### Where each repo stands
+
+| repo | layout | vendored dir |
+|---|---|---|
+| `lar-conditions` | `src/` | `compat/` |
+| `lar-ingestion` | `src/` (planned) | `compat/` (planned) |
+| `lar-probability-scoring` | flat — **migrating** | `_infra/` — **migrating** |
+| `lunar-alpha-research` | application, not a package | n/a |
+| `lar-probability-engine` | Rust; see [rust.md](rust.md) | n/a |
 
 ## Toolchain
 
