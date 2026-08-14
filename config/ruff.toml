@@ -1,0 +1,54 @@
+# Canonical ruff config for every LAR Python repo.
+#
+# SOURCE OF TRUTH: iamthanh/lar-standards :: config/ruff.toml
+# Do not edit the vendored copy in a consuming repo -- CI drift-check will fail.
+# Change it here, cut a tag, then run scripts/sync-standards.sh downstream.
+
+line-length = 100
+# The floor is the lowest Python any LAR *library* supports. lunar-alpha-research
+# is an application and may *run* on 3.13, but library code it imports must stay
+# importable on 3.12, so the lint target is pinned to the floor everywhere.
+target-version = "py312"
+
+extend-exclude = [
+    "**/migrations/**",
+    "**/_vendor/**",
+]
+
+[lint]
+# E/W  pycodestyle    -- whitespace and statement hygiene
+# F    pyflakes       -- real errors: undefined names, unused imports
+# I    isort          -- import ordering (replaces the standalone isort hook)
+# UP   pyupgrade      -- modern syntax for the target version
+#
+# NOT yet enabled, in priority order -- see standards/python.md "Ratchet".
+#   B    flake8-bugbear   (+110 findings; B904 raise-from and B905 zip-strict
+#                          are worth fixing but should not block adoption)
+#   SIM  flake8-simplify
+#   RET  flake8-return
+select = ["E", "F", "I", "W", "UP"]
+
+# E501 is deliberately off. `ruff format` already enforces line-length
+# structurally; what survives it is long string literals, URLs and tables the
+# formatter is not allowed to break. Enabling E501 on top of a formatter
+# produces noise that can only be silenced with noqa, not fixed.
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# Tests may shadow builtins and re-import for fixtures.
+"**/tests/**" = ["F811", "F401"]
+"**/conftest.py" = ["F401"]
+# `__init__.py` re-exports are the package's public surface, not dead imports.
+"**/__init__.py" = ["F401"]
+
+[lint.isort]
+known-first-party = [
+    "lar_conditions",
+    "lar_probability_scoring",
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true

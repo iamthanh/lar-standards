@@ -1,0 +1,80 @@
+# Reusable CI for LAR Rust repos.
+#
+# SOURCE OF TRUTH: iamthanh/lar-standards :: .github/workflows/rust-ci.yml
+#
+#   jobs:
+#     ci:
+#       uses: iamthanh/lar-standards/.github/workflows/rust-ci.yml@v1
+#
+# Unlike the Python gate, this one is whole-repo: lar-probability-engine is
+# already green under it, so there is no backlog to phase in.
+
+name: LAR Rust CI
+
+on:
+  workflow_call:
+    inputs:
+      test-command:
+        type: string
+        default: 'cargo test --workspace --all-features'
+      standards-ref:
+        type: string
+        default: 'v1'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # rust-toolchain.toml pins the channel and the rustfmt/clippy components.
+      - name: Show toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Tests
+        run: ${{ inputs.test-command }}
+
+  drift:
+    name: standards drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch canonical standards
+        run: |
+          git clone --depth 1 --branch "${{ inputs.standards-ref }}" \
+            https://github.com/iamthanh/lar-standards.git /tmp/lar-standards
+
+      - name: Compare vendored copies
+        run: |
+          set -uo pipefail
+          status=0
+          if ! diff -u /tmp/lar-standards/config/.editorconfig .editorconfig; then
+            echo "::error::.editorconfig has drifted from lar-standards@${{ inputs.standards-ref }}."
+            status=1
+          fi
+          if [ -f CLAUDE.md ]; then
+            awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' CLAUDE.md > /tmp/vendored-block.md
+            if ! diff -u /tmp/lar-standards/agent/CLAUDE.shared.md /tmp/vendored-block.md; then
+              echo "::error::The shared block in CLAUDE.md has drifted. Edit agent/CLAUDE.shared.md upstream."
+              status=1
+            fi
+          else
+            echo "::error::CLAUDE.md is missing."
+            status=1
+          fi
+          exit $status

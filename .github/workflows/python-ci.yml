@@ -1,0 +1,198 @@
+# Reusable CI for every LAR Python repo.
+#
+# SOURCE OF TRUTH: iamthanh/lar-standards :: .github/workflows/python-ci.yml
+# Consuming repos do not copy this. They call it:
+#
+#   jobs:
+#     ci:
+#       uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v1
+#       with:
+#         python-versions: '["3.12", "3.13"]'
+#         install: 'pip install -e ".[dev]"'
+#       secrets:
+#         ci-token: ${{ secrets.LAR_CI_TOKEN }}
+#
+# One definition, five callers. Fixing CI once fixes it everywhere.
+
+name: LAR Python CI
+
+on:
+  workflow_call:
+    inputs:
+      python-versions:
+        description: 'JSON array of Python versions. Libraries use ["3.12","3.13"]; the application uses ["3.13"].'
+        type: string
+        default: '["3.12", "3.13"]'
+      install:
+        description: 'Command that installs the package and its dev extras.'
+        type: string
+        required: true
+      test-command:
+        description: 'Test command. Set to an empty string to skip tests.'
+        type: string
+        default: 'pytest -q'
+      needs-talib:
+        description: 'Build the TA-Lib C library first (lar-conditions needs this).'
+        type: boolean
+        default: false
+      standards-ref:
+        description: 'Tag of lar-standards the vendored config must match.'
+        type: string
+        default: 'v1'
+    secrets:
+      ci-token:
+        description: 'PAT with read access to the private LAR repos.'
+        required: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Cheap, no install needed. Runs first so a formatting miss fails in ~20s
+  # rather than after a five-minute TA-Lib build.
+  # ---------------------------------------------------------------------------
+  style:
+    name: style (changed files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need the base commit to diff against.
+          fetch-depth: 0
+
+      - uses: astral-sh/ruff-action@v3
+        with:
+          version: "0.15.8"
+          args: --version
+
+      - name: Resolve changed Python files
+        id: changed
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          else
+            BASE="HEAD^"
+          fi
+          # Added/copied/modified/renamed only -- deleted files must not be linted.
+          git diff --name-only --diff-filter=ACMR "$BASE"...HEAD -- '*.py' > changed.txt || true
+          echo "count=$(wc -l < changed.txt)" >> "$GITHUB_OUTPUT"
+          echo "Changed Python files:"; cat changed.txt
+
+      - name: Format check (blocking)
+        if: steps.changed.outputs.count != '0'
+        run: xargs -r -a changed.txt ruff format --config ruff.toml --check --diff
+
+      - name: Lint (blocking)
+        if: steps.changed.outputs.count != '0'
+        run: xargs -r -a changed.txt ruff check --config ruff.toml
+
+      # Visible, non-blocking backlog. Without this the whole-repo debt is
+      # invisible and never shrinks.
+      - name: Whole-repo lint (advisory)
+        continue-on-error: true
+        run: |
+          echo "::group::Whole-repo ruff (advisory -- does not gate)"
+          ruff check --config ruff.toml --statistics . || true
+          echo "::endgroup::"
+
+  # ---------------------------------------------------------------------------
+  # Vendored config must match the pinned lar-standards tag byte-for-byte.
+  # This is what stops the five repos drifting apart again.
+  # ---------------------------------------------------------------------------
+  drift:
+    name: standards drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch canonical standards
+        run: |
+          git clone --depth 1 --branch "${{ inputs.standards-ref }}" \
+            https://github.com/iamthanh/lar-standards.git /tmp/lar-standards
+
+      - name: Compare vendored copies
+        run: |
+          set -uo pipefail
+          status=0
+          for f in ruff.toml mypy.ini .editorconfig; do
+            [ -f "$f" ] || { echo "::error::$f is missing. Run scripts/sync-standards.sh."; status=1; continue; }
+            if ! diff -u "/tmp/lar-standards/config/$f" "$f"; then
+              echo "::error::$f has drifted from lar-standards@${{ inputs.standards-ref }}. Edit it upstream, not here."
+              status=1
+            fi
+          done
+          # The shared CLAUDE.md block is delimited; compare just that region.
+          if [ -f CLAUDE.md ]; then
+            awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' CLAUDE.md > /tmp/vendored-block.md
+            if ! diff -u /tmp/lar-standards/agent/CLAUDE.shared.md /tmp/vendored-block.md; then
+              echo "::error::The shared block in CLAUDE.md has drifted. Edit agent/CLAUDE.shared.md upstream."
+              status=1
+            fi
+          else
+            echo "::error::CLAUDE.md is missing."
+            status=1
+          fi
+          exit $status
+
+  test:
+    name: tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJSON(inputs.python-versions) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      # The LAR libraries are private and pinned over git+ssh. The automatic
+      # GITHUB_TOKEN is scoped to one repository and cannot read them; rewriting
+      # ssh -> https lets pip resolve the existing pins unchanged.
+      # The `secrets` context is not available in `if:` conditionals, so the
+      # presence check happens inside the step instead.
+      - name: Authenticate to private git dependencies
+        env:
+          CI_TOKEN: ${{ secrets.ci-token }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CI_TOKEN:-}" ]; then
+            echo "No ci-token supplied; skipping private-dependency auth."
+            exit 0
+          fi
+          git config --global \
+            url."https://x-access-token:${CI_TOKEN}@github.com/".insteadOf \
+            "ssh://git@github.com/"
+
+      - name: Install TA-Lib C library
+        if: ${{ inputs.needs-talib }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o ta-lib.tar.gz \
+            https://github.com/ta-lib/ta-lib/releases/download/v0.6.4/ta-lib-0.6.4-src.tar.gz
+          tar -xzf ta-lib.tar.gz
+          cd ta-lib-0.6.4
+          ./configure --prefix=/usr/local
+          make -j"$(nproc)"
+          sudo make install
+          sudo ldconfig
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          ${{ inputs.install }}
+
+      - name: Types (advisory)
+        continue-on-error: true
+        run: |
+          pip install mypy
+          echo "::group::mypy (advisory -- does not gate)"
+          mypy --config-file mypy.ini . || true
+          echo "::endgroup::"
+
+      - name: Tests
+        if: ${{ inputs.test-command != '' }}
+        run: ${{ inputs.test-command }}

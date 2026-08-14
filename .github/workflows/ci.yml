@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # This repo ships no Python, but its config must be valid and its shell
+  # scripts must not be broken -- a bad ruff.toml here breaks all five repos.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/ruff-action@v3
+        with:
+          version: "0.15.8"
+          args: --version
+
+      - name: ruff.toml is valid
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/probe
+          printf 'from __future__ import annotations\n\n\ndef f(x: int) -> int:\n    return x\n' > /tmp/probe/probe.py
+          cp config/ruff.toml /tmp/probe/ruff.toml
+          cd /tmp/probe
+          ruff check --config ruff.toml probe.py
+          ruff format --config ruff.toml --check probe.py
+
+      - name: mypy.ini is valid
+        run: |
+          set -euo pipefail
+          pip install mypy
+          mkdir -p /tmp/mprobe && cd /tmp/mprobe
+          cp "$GITHUB_WORKSPACE/config/mypy.ini" .
+          printf 'x: int = 1\n' > probe.py
+          mypy --config-file mypy.ini probe.py
+
+      - name: Shell scripts parse
+        run: |
+          set -euo pipefail
+          for s in scripts/*.sh; do bash -n "$s"; echo "ok $s"; done
+
+      - name: Workflows are valid YAML
+        run: |
+          python -c "
+          import sys, pathlib
+          try:
+              import yaml
+          except ImportError:
+              sys.exit(0)
+          for p in pathlib.Path('.github/workflows').glob('*.yml'):
+              yaml.safe_load(p.read_text()); print('ok', p)
+          "
+
+      # The block downstream repos vendor must be extractable by the exact awk
+      # range the drift job uses, or every consumer fails on a false positive.
+      - name: Shared block round-trips
+        run: |
+          set -euo pipefail
+          awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' CLAUDE.md > /tmp/extracted.md
+          diff -u agent/CLAUDE.shared.md /tmp/extracted.md
+          echo "shared block extracts cleanly"
