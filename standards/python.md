@@ -67,6 +67,15 @@ One name, everywhere, so the copies are visible rather than scattered.
 `lar-conditions` uses `src/lar_conditions/compat/`, and `lar-ingestion`'s plan
 adopts it for the same reason.
 
+`_infra/` is the sibling for a repo's **own** internal-only helpers. The two are
+both internal and neither is public surface — they differ in origin, not
+visibility. Most repos have only one: everything under
+`lar-probability-scoring`'s was traced back to `lunar-alpha-research`, including
+two modules that had been renamed on the way (`dates.py` from `common/utils/`,
+`live_profiles_db.py` a two-function subset of
+`common/db_queries/live_trading_pipeline_profiles.py`), so that repo has no
+`_infra/` at all.
+
 Vendored code drifts. `lunar-alpha-research` runs a drift guard that hashes each
 original and fails when one changes without the copy following — two bugs got
 through before it existed, a SQL cast copied onto a column of a different type

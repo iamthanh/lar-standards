@@ -34,8 +34,15 @@ This is the single most common way an AI-written change goes wrong here.
 - **Libraries** use a `src/` layout: `src/<package_name>/`. New library repos
   must; existing ones migrate when convenient.
 - **Applications** (`lunar-alpha-research`) keep top-level packages.
-- Internal-only helpers go in a `_infra/` subpackage. A leading underscore means
-  *no other repo may import this*, and it is not part of the public surface.
+- Code copied from `lunar-alpha-research` goes in a `compat/` subpackage, so the
+  copies stay in one place and their drift is visible rather than scattered.
+  `lar-conditions` and `lar-probability-scoring` both use it.
+- A repo's *own* internal-only helpers go in `_infra/`. The leading underscore
+  means *no other repo may import this*.
+- Both are internal and neither is public surface; they differ in origin, not
+  visibility. A repo will often have only one of them -- if everything under it
+  came from `lunar-alpha-research`, it is all `compat/` and there is no
+  `_infra/`.
 - Tests live in a top-level `tests/` directory that mirrors the package tree.
   Do not nest a second `tests/` inside the package.
 - One concern per module. If a module exceeds ~500 lines, it is doing more than
