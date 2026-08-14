@@ -39,28 +39,41 @@ is the exact failure this table prevents.
 
 ## The gate is scoped to changed files
 
-Whole-repo enforcement was measured before being rejected. Against the three
-Python repos as they stand:
+Whole-repo enforcement was measured before being scoped down. Running the
+shipped config against the three Python repos as they stand:
 
-| | violations |
-|---|---|
-| Baseline (`E,F,I,W,UP`, width 100) | 2,744 |
-| After `ruff format` + `ruff check --fix` | 435 |
-| After also disabling `E501` | **224** |
+| repo | violations | auto-fixable | left after `format` + `--fix` |
+|---|---|---|---|
+| `lunar-alpha-research` | 1,471 | 1,337 | **66** |
+| `lar-conditions` | 176 | 130 | **17** |
+| `lar-probability-scoring` | 164 | 151 | **4** |
+| **total** | **1,811** | — | **87** |
 
-224 across 834 Python files is a real backlog but not a blocker — *if* it does
-not have to be cleared before anything else can merge. So:
+87 residual violations across 834 Python files. The gate is still scoped to
+changed files, but for a different reason than the raw count suggests:
 
 - **Changed files must be clean.** New and touched code meets the standard.
 - **A whole-repo advisory job** reports the remaining count on every run, so the
-  backlog is visible and shrinking rather than forgotten.
-- **No mass reformat commit.** Reformatting 530 files at once would conflict
-  with everything in flight and bury the policy change in noise. Files come into
-  compliance as they are touched.
+  backlog stays visible.
+- **No mass reformat commit.** Not because the backlog is large, but because
+  reformatting 530 files in `lunar-alpha-research` at once would conflict with
+  everything in flight and bury a policy change in mechanical noise. Files come
+  into compliance as they are touched.
 
-98 of the 224 are `F405`/`F403` from star imports in one area of
-`lar-conditions`, handled with a scoped `per-file-ignores` entry rather than a
-rewrite.
+The 98 `F403`/`F405` findings that dominated the earlier count all live in two
+`lar-conditions` files (`intraday/bar_local_conditions.py`,
+`intraday/conditions.py`), which build their condition namespace with star
+imports. A scoped `per-file-ignores` entry handles them; those paths do not
+exist in the other repos, so the config stays byte-identical everywhere.
+
+**Note that per-file-ignore patterns resolve relative to the config file's
+location.** They work with a vendored `ruff.toml` at the repo root, which is how
+the config is deployed, but silently miss if you point ruff at the canonical
+file by absolute path.
+
+At 87, promoting the gate from changed-files to whole-repo is a near-term step,
+not an aspiration — clear the residue per repo (`lar-probability-scoring` is 4)
+and flip it.
 
 ## Ratchet
 

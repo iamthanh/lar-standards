@@ -40,6 +40,13 @@ ignore = ["E501"]
 "**/conftest.py" = ["F401"]
 # `__init__.py` re-exports are the package's public surface, not dead imports.
 "**/__init__.py" = ["F401"]
+# lar-conditions builds its intraday condition namespace with star imports.
+# All 98 F403/F405 findings in that repo are in these two files. Scoped here
+# rather than rewritten, so the ruleset can be adopted without a refactor;
+# these paths simply do not exist in the other repos. Remove the entry if the
+# star imports are ever replaced with explicit ones.
+"**/intraday/bar_local_conditions.py" = ["F403", "F405"]
+"**/intraday/conditions.py" = ["F403", "F405"]
 
 [lint.isort]
 known-first-party = [

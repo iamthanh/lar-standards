@@ -1,0 +1,18 @@
+# Replaces the existing .github/workflows/ci.yml, which already does the right
+# things -- this just moves the definition to the shared one so a fix lands
+# everywhere at once, and adds the standards drift check.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: iamthanh/lar-standards/.github/workflows/rust-ci.yml@v1

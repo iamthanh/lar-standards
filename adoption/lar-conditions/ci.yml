@@ -1,0 +1,30 @@
+# Replaces the existing hand-rolled .github/workflows/ci.yml.
+#
+# Changes from what is there today:
+#   - Adds the style gate (there was none; ruff was configured in pyproject.toml
+#     but nothing ever ran it).
+#   - Adds a 3.13 leg. This library is consumed by a 3.13 application but was
+#     only ever tested on 3.12.
+#   - Keeps the TA-Lib C build, which apt cannot provide.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v1
+    with:
+      python-versions: '["3.12", "3.13"]'
+      install: 'pip install -e ".[dev]"'
+      test-command: 'python -m pytest tests/ -q'
+      needs-talib: true
+    secrets:
+      ci-token: ${{ secrets.LAR_CI_TOKEN }}
