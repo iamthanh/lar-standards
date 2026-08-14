@@ -52,6 +52,22 @@ curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/c
 the file does not exist. Step 2 appends the real tail; delete the stub heading
 so the file has only one.
 
+## Prerequisite: this repo must share its workflows
+
+**A private repo does not share its workflows with other repositories by
+default.** Until that is enabled, every caller's run fails instantly with zero
+jobs — the workflow never resolves, so there is no failing step to read and the
+run log is empty. It looks like a broken caller; it is not.
+
+Enable it once, here:
+
+**Settings → Actions → General → "Access"** →
+**"Accessible from repositories owned by the user 'iamthanh'"** → Save
+
+This is separate from `LAR_CI_TOKEN` below and neither substitutes for the
+other: this setting governs whether Actions may *load the workflow*, the token
+governs whether a running job may *clone this repo* for the drift comparison.
+
 ## Prerequisite: LAR_CI_TOKEN must also cover lar-standards
 
 Every repo's CI needs the `LAR_CI_TOKEN` secret — a PAT with read access to the
