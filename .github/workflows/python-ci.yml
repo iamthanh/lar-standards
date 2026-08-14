@@ -92,7 +92,12 @@ jobs:
         continue-on-error: true
         run: |
           echo "::group::Whole-repo ruff (advisory -- does not gate)"
-          ruff check --config ruff.toml --statistics . || true
+          # --output-format concise is required: astral-sh/ruff-action sets
+          # RUFF_OUTPUT_FORMAT=github, which --statistics rejects outright
+          # ("Unsupported serialization format for statistics: Github").
+          # Without it this step fails and, being advisory, silently reports
+          # nothing -- the job stays green while the backlog is invisible.
+          ruff check --config ruff.toml --statistics --output-format concise . || true
           echo "::endgroup::"
 
   # ---------------------------------------------------------------------------
