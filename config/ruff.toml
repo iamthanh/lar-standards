@@ -49,9 +49,14 @@ ignore = ["E501"]
 "**/intraday/conditions.py" = ["F403", "F405"]
 
 [lint.isort]
+# Every LAR Python package, not just the ones that existed when this was
+# written. A package missing here is sorted as third-party, so its imports land
+# in the wrong block and `ruff check --fix` will keep moving them back.
 known-first-party = [
     "lar_conditions",
+    "lar_ingestion",
     "lar_probability_scoring",
+    "lar_utils",
 ]
 
 [format]

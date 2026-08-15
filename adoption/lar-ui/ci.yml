@@ -1,0 +1,23 @@
+# Replaces lar-ui's inlined workflow once v5 is tagged.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: iamthanh/lar-standards/.github/workflows/node-ci.yml@v5
+    with:
+      # "changed" while the eslint backlog exists (83 errors across 28 files at
+      # last count). Switch to "all" when it reaches zero.
+      lint-scope: 'changed'
+      standards-ref: 'v5'
+    secrets:
+      ci-token: ${{ secrets.LAR_CI_TOKEN }}

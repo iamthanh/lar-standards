@@ -1,0 +1,148 @@
+# Reusable CI for LAR Node/TypeScript repos.
+#
+# SOURCE OF TRUTH: iamthanh/lar-standards :: .github/workflows/node-ci.yml
+#
+#   jobs:
+#     ci:
+#       uses: iamthanh/lar-standards/.github/workflows/node-ci.yml@v5
+#       with:
+#         standards-ref: 'v5'
+#
+# Lifted from the version lar-ui inlined, which said in its own header that the
+# drift job "is language-agnostic ... so it should move upstream unchanged".
+# It was right, and this is that move.
+
+name: LAR Node CI
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node major version. Vite 5 and typescript-eslint 8 both want an active LTS line.'
+        type: string
+        default: '22'
+      install:
+        description: '`npm ci`, not `npm install` -- the lockfile came across with the extraction and the build must stay reproducible.'
+        type: string
+        default: 'npm ci'
+      build-command:
+        description: 'Typecheck + build. In lar-ui `npm run build` is `tsc -b && vite build`, so this gates both.'
+        type: string
+        default: 'npm run build'
+      lint-scope:
+        description: '"changed" lints only files a PR touches; "all" lints the repo. Use "changed" while a backlog exists.'
+        type: string
+        default: 'changed'
+      standards-ref:
+        description: 'Tag of lar-standards the vendored files must match.'
+        type: string
+        default: 'v5'
+    secrets:
+      ci-token:
+        description: 'PAT with read access to the private LAR repos. Optional: lar-standards is public.'
+        required: false
+
+jobs:
+  checks:
+    name: typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: the changed-files lint diffs against the PR base sha,
+      # which a depth-1 checkout cannot reach.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install
+        run: ${{ inputs.install }}
+
+      # Scoped to changed files by default, for the same reason the Python gate
+      # is: a real backlog exists, and a whole-repo gate would either be
+      # permanently red or have to be neutered to pass. Switch lint-scope to
+      # "all" once a repo reaches zero.
+      - name: Lint
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.lint-scope }}" = "all" ]; then
+            npm run lint
+            exit 0
+          fi
+          base="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$base" ]; then
+            echo "Not a pull request -- the changed-files lint has no base to diff against."
+            exit 0
+          fi
+          mapfile -t changed < <(
+            git diff --name-only --diff-filter=ACMR "$base" HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx'
+          )
+          if [ ${#changed[@]} -eq 0 ]; then
+            echo "No JS/TS files changed."
+            exit 0
+          fi
+          printf 'Linting %d changed file(s):\n' "${#changed[@]}"
+          printf '  %s\n' "${changed[@]}"
+          npx eslint "${changed[@]}"
+
+      - name: Typecheck and build
+        run: ${{ inputs.build-command }}
+
+  # Identical in substance to the drift job in python-ci.yml and rust-ci.yml.
+  # A Node repo vendors no ruff.toml or mypy.ini, so only .editorconfig and the
+  # shared block are compared.
+  drift:
+    name: standards drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # lar-standards is public, so this clone needs no credentials. A token is
+      # still used when one is supplied, purely for the higher API rate limit on
+      # busy runners. Injected via url.insteadOf rather than embedded in the
+      # clone URL, to keep it off the command line.
+      - name: Fetch canonical standards
+        env:
+          CI_TOKEN: ${{ secrets.ci-token }}
+        run: |
+          set -euo pipefail
+          if [ -n "${CI_TOKEN:-}" ]; then
+            git config --global \
+              url."https://x-access-token:${CI_TOKEN}@github.com/".insteadOf \
+              "https://github.com/"
+          fi
+          git clone --depth 1 --branch "${{ inputs.standards-ref }}" \
+            https://github.com/iamthanh/lar-standards.git /tmp/lar-standards
+
+      - name: Compare vendored copies
+        run: |
+          set -uo pipefail
+          status=0
+          if ! diff -u /tmp/lar-standards/config/.editorconfig .editorconfig; then
+            echo "::error::.editorconfig has drifted from lar-standards@${{ inputs.standards-ref }}."
+            status=1
+          fi
+          # The shared block is delimited; compare just that region.
+          if [ -f AGENTS.md ]; then
+            awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' AGENTS.md > /tmp/vendored-block.md
+            if ! diff -u /tmp/lar-standards/agent/AGENTS.shared.md /tmp/vendored-block.md; then
+              echo "::error::The shared block in AGENTS.md has drifted. Edit agent/AGENTS.shared.md upstream, then re-sync."
+              status=1
+            fi
+          else
+            echo "::error::AGENTS.md is missing. Run scripts/sync-standards.sh."
+            status=1
+          fi
+          # CLAUDE.md must be a symlink, not a copy -- a copy passes a content
+          # check on the day it is made and diverges quietly afterwards.
+          if [ ! -L CLAUDE.md ]; then
+            echo "::error::CLAUDE.md must be a symlink to AGENTS.md, not a real file."
+            status=1
+          elif [ "$(readlink CLAUDE.md)" != "AGENTS.md" ]; then
+            echo "::error::CLAUDE.md points at $(readlink CLAUDE.md); expected AGENTS.md."
+            status=1
+          fi
+          exit $status

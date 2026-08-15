@@ -1,8 +1,8 @@
 # lar-standards
 
-Canonical code standards for the LAR repos: `lunar-alpha-research`,
+Canonical code standards for the seven LAR repos: `lunar-alpha-research`,
 `lar-conditions`, `lar-probability-scoring`, `lar-probability-engine`,
-`lar-ingestion`.
+`lar-ingestion`, `lar-utils` and `lar-ui`.
 
 One source of truth for lint config, CI, and the instructions agents read
 before they write code. Consuming repos vendor a copy and CI fails if the copy
@@ -50,6 +50,7 @@ standards/       the written standards: python, rust, review checklist
 .github/workflows/
   python-ci.yml  reusable (workflow_call) — called by the Python repos
   rust-ci.yml    reusable (workflow_call) — called by lar-probability-engine
+  node-ci.yml    reusable (workflow_call) — called by lar-ui
 scripts/
   sync-standards.sh   pull canonical config into a consuming repo
   check-drift.sh      the same comparison CI runs, locally
@@ -96,17 +97,17 @@ Two configs for one tool is the failure mode this repo exists to end.
 ## Changing a standard
 
 1. Edit here. Never edit a vendored copy — the drift job will fail it.
-2. Cut a tag (`v2`, `v3`, ...). Consuming repos pin to the tag.
+2. Cut a tag (`v5`, `v6`, ...). Consuming repos pin to the tag.
 3. Run `scripts/sync-standards.sh --ref <tag>` in each consumer and commit.
 
 Moving the current tag is allowed for additive, non-breaking changes. Anything
 that turns previously-passing code red gets a new major tag so repos can adopt
 on their own schedule.
 
-**The current tag is `v3`.** `v1` required credentials this repo no longer
-needs; `v2` predates the move from `CLAUDE.md` to `AGENTS.md`. Neither should be
-used. Both are worked examples of the rule above — each got a new tag rather
-than having the old one moved.
+**The current tag is `v4`.** `v1` required credentials this repo no longer
+needs, `v2` predates the move from `CLAUDE.md` to `AGENTS.md`, and `v3` was cut
+against the wrong commit and has been deleted. Each got a new tag rather than
+having an old one moved, which is the rule above applied to itself.
 
 ## Why AGENTS.md
 

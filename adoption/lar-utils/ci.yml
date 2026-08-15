@@ -1,0 +1,24 @@
+# Replaces lar-utils' inlined style.yml once v5 is tagged. v5 is the first tag
+# whose ruff.toml lists lar_utils under [lint.isort] known-first-party, which is
+# the gap that repo's own header named as the blocker.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v5
+    with:
+      python-versions: '["3.12", "3.13"]'
+      install: 'pip install -e ".[dev]"'
+      standards-ref: 'v5'
+    secrets:
+      ci-token: ${{ secrets.LAR_CI_TOKEN }}
