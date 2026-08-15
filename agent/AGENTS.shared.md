@@ -28,10 +28,10 @@ code in the wrong place:
 - **`lar-ui` is not yet the only frontend.** `lunar-alpha-research` still ships
   ~148 files under `ui/`. New frontend work goes to `lar-ui`; do not extend the
   copy still sitting in the application.
-- **`lar-utils` is not yet consumed.** No repo declares a dependency on it. Do
-  not assume a helper is available from it -- check the consuming repo's
-  `pyproject.toml` first, and if you add the dependency, that is its own commit
-  with its own reason.
+- **`lar-utils` is consumed by one repo so far.** `lar-probability-scoring`
+  pins it at `v0.2.0`; nothing else declares it. Do not assume a helper is
+  available from it -- check the consuming repo's `pyproject.toml` first, and if
+  you add the dependency, that is its own commit with its own reason.
 
 **Dependency direction is one-way**: `lunar-alpha-research` depends on the
 libraries; the libraries may depend on `lar-utils`. Nothing may import from
