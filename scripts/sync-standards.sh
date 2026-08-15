@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pull canonical LAR standards into a consuming repo.
 #
-#   scripts/sync-standards.sh [--ref v3] [--target .]
+#   scripts/sync-standards.sh [--ref v4] [--target .]
 #
 # Copies config/ruff.toml, config/mypy.ini and config/.editorconfig into the
 # target repo root, refreshes the shared block inside its AGENTS.md in place
@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-REF="v3"
+REF="v4"
 TARGET="."
 STANDARDS_REPO="https://github.com/iamthanh/lar-standards.git"
 

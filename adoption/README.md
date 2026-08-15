@@ -9,11 +9,17 @@ branch `claude/ai-code-structure-guidelines-ela4u1`. Both now call the reusable
 workflow, and their `standards drift` and `style` jobs pass — so the pattern the
 three repos below are about to follow is proven, not theoretical.
 
-## The current tag is `v3`
+## The current tag is `v4`
 
-Everything below pins `@v3`. **Do not use `v1` or `v2`** — `v1`'s drift job
-hard-required a credential, and `v2` predates the move to `AGENTS.md`. `v3` is
-the current tag.
+Everything below pins `@v4`. **Do not use `v1`, `v2` or `v3`** — `v1`'s drift
+job hard-required a credential, `v2` predates the move to `AGENTS.md`, and `v3`
+was cut against the wrong commit and never carried the `AGENTS.md` work at all.
+`v4` is the current tag.
+
+`main` may sit a commit or two ahead of `v4` with documentation-only changes.
+That is harmless: no file the drift job compares (`ruff.toml`, `mypy.ini`,
+`.editorconfig`, the shared block) ever references a tag, so docs drifting ahead
+cannot fail a consuming repo's build.
 
 Consuming repos pin to a tag rather than `main` for the same reason the LAR
 repos already pin each other by tag or SHA: a moving reference turns an
@@ -31,20 +37,20 @@ the big repos at them.
 cd /path/to/<repo>
 
 # 1. Vendor the config, seed AGENTS.md, link CLAUDE.md -> AGENTS.md.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/scripts/sync-standards.sh \
-  | bash -s -- --ref v3 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v4/scripts/sync-standards.sh \
+  | bash -s -- --ref v4 --target .
 
 # 2. Append the repo-specific tail.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/adoption/<repo>/AGENTS.tail.md \
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v4/adoption/<repo>/AGENTS.tail.md \
   >> AGENTS.md
 
 # 3. Replace CI.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/adoption/<repo>/ci.yml \
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v4/adoption/<repo>/ci.yml \
   > .github/workflows/ci.yml
 
 # 4. Confirm nothing drifted.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/scripts/check-drift.sh \
-  | bash -s -- --ref v3 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v4/scripts/check-drift.sh \
+  | bash -s -- --ref v4 --target .
 ```
 
 `sync-standards.sh` seeds `AGENTS.md` with a "Repo-specific guidance" stub when

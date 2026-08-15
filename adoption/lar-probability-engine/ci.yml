@@ -15,11 +15,11 @@ concurrency:
 
 jobs:
   ci:
-    uses: iamthanh/lar-standards/.github/workflows/rust-ci.yml@v3
+    uses: iamthanh/lar-standards/.github/workflows/rust-ci.yml@v4
     with:
       # Passed explicitly so the pinned tag above and the tag the drift job
       # compares against cannot silently disagree.
-      standards-ref: 'v3'
+      standards-ref: 'v4'
     secrets:
       # Needed by the drift job, which reads the private lar-standards repo.
       ci-token: ${{ secrets.LAR_CI_TOKEN }}

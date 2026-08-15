@@ -59,8 +59,8 @@ scripts/
 
 ```bash
 # from the consuming repo's root
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/scripts/sync-standards.sh \
-  | bash -s -- --ref v3 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v4/scripts/sync-standards.sh \
+  | bash -s -- --ref v4 --target .
 ```
 
 Then replace the repo's CI with a call to the reusable workflow:
@@ -78,13 +78,13 @@ concurrency:
 
 jobs:
   ci:
-    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v3
+    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v4
     with:
       python-versions: '["3.12", "3.13"]'
       install: 'pip install -e ".[dev]"'
       # Match this to the tag pinned above. Passing it explicitly keeps the
       # workflow you run and the standards you are compared against in step.
-      standards-ref: 'v3'
+      standards-ref: 'v4'
     secrets:
       ci-token: ${{ secrets.LAR_CI_TOKEN }}
 ```
