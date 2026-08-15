@@ -1,7 +1,8 @@
 # Python standard
 
-Conventions live in [`agent/CLAUDE.shared.md`](../agent/CLAUDE.shared.md) —
-that file is vendored into every repo so agents read it before writing code.
+Conventions live in [`agent/AGENTS.shared.md`](../agent/AGENTS.shared.md) —
+that file is vendored into every repo's `AGENTS.md` so agents read it before
+writing code.
 This document covers the **package layout, the toolchain, and how both are
 enforced**.
 
@@ -11,7 +12,8 @@ enforced**.
 lar-<name>/
 ├── pyproject.toml          [tool.setuptools.packages.find] where = ["src"]
 ├── README.md               links here; does not restate this
-├── CLAUDE.md               shared block + repo tail
+├── AGENTS.md               shared block + repo tail
+├── CLAUDE.md -> AGENTS.md  symlink, never a copy
 ├── ruff.toml  mypy.ini  .editorconfig      vendored from lar-standards
 ├── docs/                   design notes, contracts, migration plan
 ├── scripts/                dev/ops scripts, not packaged
@@ -21,12 +23,18 @@ lar-<name>/
 │   ├── api/                only if the repo serves one
 │   ├── compat/             modules vendored from lunar-alpha-research
 │   └── <domain packages>/
-└── tests/                  mirrors the package; subdirs only when earned
+└── tests/                  flat, test_<module>.py; subdirs for fixtures only
 ```
 
 The repo directory is hyphenated (the distribution name) and the package under
 `src/` is underscored (the import name). `lar-probability-scoring` installs as
 `lar_probability_scoring`.
+
+`tests/` is **flat** — `test_<module>.py`, with subdirectories only for fixtures
+and golden data. Mirroring the package tree was the earlier rule and no repo
+ever followed it: `lar-probability-scoring` has `_infra/` and `api/` in the
+package and only `golden/` under `tests/`. The standard now matches what the
+repos do rather than what they were told to do.
 
 ### Why `src/`
 

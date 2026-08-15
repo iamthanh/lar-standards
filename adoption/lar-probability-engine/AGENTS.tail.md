@@ -1,7 +1,7 @@
 
 ## Repo-specific guidance: lar-probability-engine
 
-Rust. See [`standards/rust.md`](https://github.com/iamthanh/lar-standards/blob/v2/standards/rust.md);
+Rust. See [`standards/rust.md`](https://github.com/iamthanh/lar-standards/blob/v3/standards/rust.md);
 the Python sections of the shared block above do not apply, but the repo map,
 the cross-repo contracts and the commit conventions do.
 

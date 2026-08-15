@@ -30,8 +30,8 @@ Three layers, in descending order of how much they actually hold:
 
 1. **Enforced floor** — `ruff format`, `ruff check`, `pytest`, `cargo
    fmt/clippy`. Identical config everywhere, gated in CI, zero human attention.
-2. **Agent instructions** — [`agent/CLAUDE.shared.md`](agent/CLAUDE.shared.md),
-   vendored into every repo's `CLAUDE.md`. This covers what a linter cannot:
+2. **Agent instructions** — [`agent/AGENTS.shared.md`](agent/AGENTS.shared.md),
+   vendored into every repo's `AGENTS.md`. This covers what a linter cannot:
    which repo owns what, seam rules, contract rules, and the specific mistakes
    that have already happened here.
 3. **Human review** — [`standards/review-checklist.md`](standards/review-checklist.md),
@@ -45,7 +45,7 @@ is the small residue that genuinely needs judgment.
 
 ```
 config/          canonical ruff.toml, mypy.ini, .editorconfig  (vendored downstream)
-agent/           CLAUDE.shared.md — the block every repo's CLAUDE.md contains
+agent/           AGENTS.shared.md — the block every repo's AGENTS.md contains
 standards/       the written standards: python, rust, review checklist
 .github/workflows/
   python-ci.yml  reusable (workflow_call) — called by the Python repos
@@ -59,8 +59,8 @@ scripts/
 
 ```bash
 # from the consuming repo's root
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/sync-standards.sh \
-  | bash -s -- --ref v2 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/scripts/sync-standards.sh \
+  | bash -s -- --ref v3 --target .
 ```
 
 Then replace the repo's CI with a call to the reusable workflow:
@@ -78,13 +78,13 @@ concurrency:
 
 jobs:
   ci:
-    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v2
+    uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v3
     with:
       python-versions: '["3.12", "3.13"]'
       install: 'pip install -e ".[dev]"'
       # Match this to the tag pinned above. Passing it explicitly keeps the
       # workflow you run and the standards you are compared against in step.
-      standards-ref: 'v2'
+      standards-ref: 'v3'
     secrets:
       ci-token: ${{ secrets.LAR_CI_TOKEN }}
 ```
@@ -103,10 +103,23 @@ Moving the current tag is allowed for additive, non-breaking changes. Anything
 that turns previously-passing code red gets a new major tag so repos can adopt
 on their own schedule.
 
-**The current tag is `v2`. `v1` must not be used** — its drift job required
-credentials this repo no longer needs, and predates the fixes below. It is also
-the worked example for the rule above: it got a new tag rather than having the
-old one moved.
+**The current tag is `v3`.** `v1` required credentials this repo no longer
+needs; `v2` predates the move from `CLAUDE.md` to `AGENTS.md`. Neither should be
+used. Both are worked examples of the rule above — each got a new tag rather
+than having the old one moved.
+
+## Why AGENTS.md
+
+`AGENTS.md` is the cross-tool standard, read natively by Claude Code, Codex,
+Cursor, Copilot, Gemini CLI and 30+ other tools. `CLAUDE.md` is kept as a
+**symlink** to it, because sources disagree on which file wins when both are
+present — pointing them at the same bytes makes the question moot. The drift job
+fails if `CLAUDE.md` is ever a real file rather than a symlink, since a copy
+passes a content check on the day it is made and diverges quietly afterwards.
+
+Symlinks require `core.symlinks` on Windows. If that becomes a problem, the
+fallback is a `CLAUDE.md` containing the single line `@AGENTS.md`, which Claude
+Code expands as an import.
 
 ## Enforcement posture
 

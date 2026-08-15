@@ -1,7 +1,7 @@
 # Adoption kits
 
 Per-repo material for the three repos that have not adopted yet. Each directory
-holds the repo-specific tail for its `CLAUDE.md` and the CI file that replaces
+holds the repo-specific tail for its `AGENTS.md` and the CI file that replaces
 its hand-rolled workflow.
 
 `lunar-alpha-research` and `lar-probability-scoring` have already adopted, on
@@ -9,11 +9,11 @@ branch `claude/ai-code-structure-guidelines-ela4u1`. Both now call the reusable
 workflow, and their `standards drift` and `style` jobs pass — so the pattern the
 three repos below are about to follow is proven, not theoretical.
 
-## The current tag is `v2`
+## The current tag is `v3`
 
-Everything below pins `@v2`. **Do not use `v1`** — its drift job hard-required
-a credential, and predates the fixes that followed. `v2` is the first usable
-tag.
+Everything below pins `@v3`. **Do not use `v1` or `v2`** — `v1`'s drift job
+hard-required a credential, and `v2` predates the move to `AGENTS.md`. `v3` is
+the current tag.
 
 Consuming repos pin to a tag rather than `main` for the same reason the LAR
 repos already pin each other by tag or SHA: a moving reference turns an
@@ -30,26 +30,27 @@ the big repos at them.
 ```bash
 cd /path/to/<repo>
 
-# 1. Vendor the canonical config and seed CLAUDE.md with the shared block.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/sync-standards.sh \
-  | bash -s -- --ref v2 --target .
+# 1. Vendor the config, seed AGENTS.md, link CLAUDE.md -> AGENTS.md.
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/scripts/sync-standards.sh \
+  | bash -s -- --ref v3 --target .
 
 # 2. Append the repo-specific tail.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/adoption/<repo>/CLAUDE.tail.md \
-  >> CLAUDE.md
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/adoption/<repo>/AGENTS.tail.md \
+  >> AGENTS.md
 
 # 3. Replace CI.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/adoption/<repo>/ci.yml \
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/adoption/<repo>/ci.yml \
   > .github/workflows/ci.yml
 
 # 4. Confirm nothing drifted.
-curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v2/scripts/check-drift.sh \
-  | bash -s -- --ref v2 --target .
+curl -fsSL https://raw.githubusercontent.com/iamthanh/lar-standards/v3/scripts/check-drift.sh \
+  | bash -s -- --ref v3 --target .
 ```
 
-`sync-standards.sh` seeds `CLAUDE.md` with a "Repo-specific guidance" stub when
+`sync-standards.sh` seeds `AGENTS.md` with a "Repo-specific guidance" stub when
 the file does not exist. Step 2 appends the real tail; delete the stub heading
-so the file has only one.
+so the file has only one. It also creates `CLAUDE.md` as a **symlink** to
+`AGENTS.md` — never a copy, which the drift job enforces.
 
 ## This repo is public, deliberately
 
@@ -96,9 +97,9 @@ and a `src/` layout from the start.
 ## Verified end to end
 
 On `lar-probability-scoring` and `lunar-alpha-research`, `ci / standards drift`
-and `ci / style (changed files)` both pass against `lar-standards@v2`.
+and `ci / style (changed files)` both pass against `lar-standards`.
 
 The drift comparison was also tested against deliberate tampering — a changed
-`line-length`, an edited line inside the `CLAUDE.md` shared block, and a deleted
+`line-length`, an edited line inside the shared block, and a deleted
 `mypy.ini` — and fails on each. It is a guard that actually guards, not one that
 passes because it never looked.

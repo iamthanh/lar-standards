@@ -5,7 +5,7 @@
 #
 #   jobs:
 #     ci:
-#       uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v2
+#       uses: iamthanh/lar-standards/.github/workflows/python-ci.yml@v3
 #       with:
 #         python-versions: '["3.12", "3.13"]'
 #         install: 'pip install -e ".[dev]"'
@@ -38,7 +38,7 @@ on:
       standards-ref:
         description: 'Tag of lar-standards the vendored config must match.'
         type: string
-        default: 'v2'
+        default: 'v3'
     secrets:
       ci-token:
         description: 'PAT with read access to the private LAR repos.'
@@ -142,15 +142,24 @@ jobs:
               status=1
             fi
           done
-          # The shared CLAUDE.md block is delimited; compare just that region.
-          if [ -f CLAUDE.md ]; then
-            awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' CLAUDE.md > /tmp/vendored-block.md
-            if ! diff -u /tmp/lar-standards/agent/CLAUDE.shared.md /tmp/vendored-block.md; then
-              echo "::error::The shared block in CLAUDE.md has drifted. Edit agent/CLAUDE.shared.md upstream."
+          # The shared block is delimited; compare just that region.
+          if [ -f AGENTS.md ]; then
+            awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' AGENTS.md > /tmp/vendored-block.md
+            if ! diff -u /tmp/lar-standards/agent/AGENTS.shared.md /tmp/vendored-block.md; then
+              echo "::error::The shared block in AGENTS.md has drifted. Edit agent/AGENTS.shared.md upstream, then re-sync."
               status=1
             fi
           else
-            echo "::error::CLAUDE.md is missing."
+            echo "::error::AGENTS.md is missing. Run scripts/sync-standards.sh."
+            status=1
+          fi
+          # CLAUDE.md must be a symlink, not a copy -- a copy passes a content
+          # check on the day it is made and diverges quietly afterwards.
+          if [ ! -L CLAUDE.md ]; then
+            echo "::error::CLAUDE.md must be a symlink to AGENTS.md, not a real file."
+            status=1
+          elif [ "$(readlink CLAUDE.md)" != "AGENTS.md" ]; then
+            echo "::error::CLAUDE.md points at $(readlink CLAUDE.md); expected AGENTS.md."
             status=1
           fi
           exit $status

@@ -64,6 +64,14 @@ jobs:
       - name: Shared block round-trips
         run: |
           set -euo pipefail
-          awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' CLAUDE.md > /tmp/extracted.md
-          diff -u agent/CLAUDE.shared.md /tmp/extracted.md
+          awk '/BEGIN lar-standards shared block/,/END lar-standards shared block/' AGENTS.md > /tmp/extracted.md
+          diff -u agent/AGENTS.shared.md /tmp/extracted.md
           echo "shared block extracts cleanly"
+
+      # This repo eats its own dog food: CLAUDE.md must be a symlink here too.
+      - name: CLAUDE.md is a symlink to AGENTS.md
+        run: |
+          set -euo pipefail
+          [ -L CLAUDE.md ] || { echo "::error::CLAUDE.md must be a symlink"; exit 1; }
+          [ "$(readlink CLAUDE.md)" = "AGENTS.md" ] || { echo "::error::CLAUDE.md points at $(readlink CLAUDE.md)"; exit 1; }
+          echo "ok"
