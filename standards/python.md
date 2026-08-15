@@ -97,8 +97,10 @@ Quarantining copies under one directory is what makes that check possible.
 | `lar-conditions` | `src/` | `compat/` |
 | `lar-ingestion` | `src/` (planned) | `compat/` (planned) |
 | `lar-probability-scoring` | flat — **migrating** | `_infra/` — **migrating** |
+| `lar-utils` | `src/` (new repo — start there) | n/a |
 | `lunar-alpha-research` | application, not a package | n/a |
 | `lar-probability-engine` | Rust; see [rust.md](rust.md) | n/a |
+| `lar-ui` | TypeScript/React; this standard does not apply | n/a |
 
 ## Toolchain
 

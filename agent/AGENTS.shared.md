@@ -9,21 +9,38 @@
 
 ## The LAR repo map
 
-Five repos. Put code where it belongs; the seams are deliberate and were paid
+Seven repos. Put code where it belongs; the seams are deliberate and were paid
 for with extraction work.
 
 | Repo | Owns | Language |
 |---|---|---|
-| `lunar-alpha-research` | The application: ingestion orchestration, backtesting, trade engine, jobs/workers, HTTP API, UI. Depends on the libraries below. | Python 3.13 |
+| `lunar-alpha-research` | The application: ingestion orchestration, backtesting, trade engine, jobs/workers, HTTP API. Depends on the libraries below. | Python 3.13 |
 | `lar-conditions` | Condition definitions, evaluation, classification, encoding. The BLAKE2b -> 0..255 encoding contract is **frozen**. | Python 3.12 |
 | `lar-probability-scoring` | Probability scoring engine, scoring constants, weight profiles, scoring CLI, scores worker, scoring HTTP API. | Python 3.12 |
 | `lar-probability-engine` | Performance-critical probability computation. | Rust |
 | `lar-ingestion` | Market data ingestion. | Python 3.12 |
+| `lar-utils` | Shared Python helpers used across the repos above. | Python |
+| `lar-ui` | The React frontend. Consumes the HTTP APIs the app and libraries expose. | TypeScript / React |
+
+Two of these are mid-migration, and assuming they are finished is a way to put
+code in the wrong place:
+
+- **`lar-ui` is not yet the only frontend.** `lunar-alpha-research` still ships
+  ~148 files under `ui/`. New frontend work goes to `lar-ui`; do not extend the
+  copy still sitting in the application.
+- **`lar-utils` is not yet consumed.** No repo declares a dependency on it. Do
+  not assume a helper is available from it -- check the consuming repo's
+  `pyproject.toml` first, and if you add the dependency, that is its own commit
+  with its own reason.
 
 **Dependency direction is one-way**: `lunar-alpha-research` depends on the
-libraries. A library must never import from `lunar-alpha-research`. If you find
-yourself wanting to, the code you are writing belongs on the other side of the
-seam -- stop and say so rather than adding the import.
+libraries; the libraries may depend on `lar-utils`. Nothing may import from
+`lunar-alpha-research`. If you find yourself wanting to, the code you are
+writing belongs on the other side of the seam -- stop and say so rather than
+adding the import.
+
+`lar-ui` talks to the other repos over HTTP only. A route or response-model
+change in any `api/` package is a two-repo change with `lar-ui`.
 
 **Before adding a module, check whether another repo already owns that concern.**
 Scoring logic goes in `lar-probability-scoring`, not in a new `common/scoring/`.
