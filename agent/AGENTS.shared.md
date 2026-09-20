@@ -175,6 +175,15 @@ Bumping a pin is its own commit with its own reason. For local development,
 
 ## Commits and PRs
 
+- **Never commit or push to `main`. Ever.** Every change an AI agent makes goes
+  on a branch and opens a **draft PR** -- one-line fixes, documentation and
+  config included. The PR is where a change is reviewed before it reaches main,
+  and an agent's work is exactly the kind that most needs that step. Merging a
+  PR, and marking a draft ready for review, are the human's call, not the
+  agent's.
+- **Push the branch explicitly.** `git switch -c <branch> origin/main` sets the
+  branch's upstream to `origin/main`, so a bare `git push` can aim at main. Use
+  `git push -u origin <branch>` the first time.
 - Commit subjects are **imperative and specific about the behaviour change**,
   not the mechanism. Match the existing log: "Stop casting tradables_config_id
   to uuid in signal_candidates queries", not "fix bug" or "update queries.py".
